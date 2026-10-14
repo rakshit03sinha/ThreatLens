@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: threatlens-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-threatlens_root_pass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-threatlens}
+      MYSQL_USER: ${MYSQL_USER:-threatlens_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-threatlens_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD:-threatlens_root_pass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  threatlens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: threatlens-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=mysql+aiomysql://${MYSQL_USER:-threatlens_user}:${MYSQL_PASSWORD:-threatlens_pass}@db:3306/${MYSQL_DATABASE:-threatlens}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL=${GROQ_MODEL:-llama3-70b-8192}
+      - SECRET_KEY=${SECRET_KEY:-threatlens-insecure-secret-key-change-in-production-min32chars}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mysql_data:
+

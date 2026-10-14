@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreatLens — AI-Powered SIEM & Threat Detection Platform</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo-shield">🛡️</div>
+      <div>
+        <h1>ThreatLens</h1>
+        <span class="subtitle">Next-Gen SIEM & Detection Engineering Platform</span>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="badge" id="ai-status-badge">AI: Initializing...</span>
+      <span class="badge badge-success" id="backend-status-badge">API: Online</span>
+      <button class="btn btn-sm btn-outline" onclick="triggerSeedData()">⚡ Load Demo Telemetry</button>
+    </div>
+  </header>
+
+  <nav class="nav-bar">
+    <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
+    <button class="tab-btn" onclick="switchTab('alerts')">🚨 Alerts & Triage</button>
+    <button class="tab-btn" onclick="switchTab('campaigns')">🎯 Campaigns</button>
+    <button class="tab-btn" onclick="switchTab('events')">📜 Event Explorer</button>
+    <button class="tab-btn" onclick="switchTab('investigate')">🤖 AI SOC Analyst</button>
+    <button class="tab-btn" onclick="switchTab('iocs')">🔍 Threat Intel (IOCs)</button>
+    <button class="tab-btn" onclick="switchTab('rules')">⚙️ Detection Rules (11)</button>
+    <button class="tab-btn" onclick="switchTab('ingest')">📥 Ingestion Testbed</button>
+  </nav>
+
+  <main class="content-container">
+    <!-- OVERVIEW TAB -->
+    <section id="tab-overview" class="tab-content active">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">TOTAL INGESTED EVENTS</div>
+          <div class="metric-val" id="metric-events">0</div>
+        </div>
+        <div class="metric-card border-danger">
+          <div class="metric-title">SECURITY ALERTS</div>
+          <div class="metric-val text-danger" id="metric-alerts">0</div>
+        </div>
+        <div class="metric-card border-warning">
+          <div class="metric-title">CRITICAL / HIGH</div>
+          <div class="metric-val text-warning" id="metric-crit-high">0</div>
+        </div>
+        <div class="metric-card border-info">
+          <div class="metric-title">ACTIVE CAMPAIGNS</div>
+          <div class="metric-val text-info" id="metric-campaigns">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">IOC INTEL MATCHES</div>
+          <div class="metric-val text-success" id="metric-iocs">0</div>
+        </div>
+      </div>
+
+      <div class="dashboard-split">
+        <div class="panel">
+          <h3>🔥 Recent High-Risk Alerts</h3>
+          <div id="overview-recent-alerts" class="feed-list">Loading alerts...</div>
+        </div>
+        <div class="panel">
+          <h3>🎯 Active Threat Campaigns</h3>
+          <div id="overview-recent-campaigns" class="feed-list">Loading campaigns...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALERTS TAB -->
+    <section id="tab-alerts" class="tab-content">
+      <div class="panel-header">
+        <h2>Security Alerts Triage</h2>
+        <div class="filter-row">
+          <select id="filter-alert-severity" onchange="loadAlerts()">
+            <option value="">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select id="filter-alert-status" onchange="loadAlerts()">
+            <option value="">All Statuses</option>
+            <option value="new">New</option>
+            <option value="investigating">Investigating</option>
+            <option value="triaged">Triaged</option>
+            <option value="closed">Closed</option>
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="loadAlerts()">Refresh</button>
+        </div>
+      </div>
+      <div id="alerts-table-container">Loading alerts table...</div>
+    </section>
+
+    <!-- CAMPAIGNS TAB -->
+    <section id="tab-campaigns" class="tab-content">
+      <div class="panel-header">
+        <h2>Incident Campaigns & Multi-Stage Correlation</h2>
+        <button class="btn btn-sm btn-primary" onclick="loadCampaigns()">Refresh</button>
+      </div>
+      <div id="campaigns-container">Loading campaigns...</div>
+    </section>
+
+    <!-- EVENTS TAB -->
+    <section id="tab-events" class="tab-content">
+      <div class="panel-header">
+        <h2>Normalized Telemetry Explorer (12 Parsers)</h2>
+        <div class="filter-row">
+          <input type="text" id="event-search-input" placeholder="Search message or IP..." onkeyup="if(event.key==='Enter') loadEvents()">
+          <button class="btn btn-sm btn-primary" onclick="loadEvents()">Search</button>
+        </div>
+      </div>
+      <div id="events-table-container">Loading normalized events...</div>
+    </section>
+
+    <!-- INVESTIGATE TAB -->
+    <section id="tab-investigate" class="tab-content">
+      <div class="panel">
+        <h2>🤖 AI-Assisted SOC Incident Investigation</h2>
+        <p class="text-muted">Retrieval-Augmented Generation (RAG) grounded in real telemetry, threat rules, IOCs, and playbooks.</p>
+        <div class="investigation-input-row">
+          <input type="text" id="investigate-query" placeholder="Ask a question (e.g. 'Summarize the brute force attack on user admin and recommend defensive containment steps')" />
+          <button class="btn btn-primary" onclick="submitInvestigation()">Investigate</button>
+        </div>
+        <div id="investigation-result" class="investigation-result-card" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- IOCS TAB -->
+    <section id="tab-iocs" class="tab-content">
+      <div class="panel-header">
+        <h2>Threat Intelligence Indicators of Compromise (IOC)</h2>
+        <button class="btn btn-sm btn-primary" onclick="showAddIOCModal()">+ Add Indicator</button>
+      </div>
+      <div id="iocs-table-container">Loading IOC indicators...</div>
+    </section>
+
+    <!-- RULES TAB -->
+    <section id="tab-rules" class="tab-content">
+      <div class="panel-header">
+        <h2>MITRE ATT&CK Aligned Detection Catalogue (11 Rules)</h2>
+      </div>
+      <div id="rules-catalogue-container">Loading rules catalogue...</div>
+    </section>
+
+    <!-- INGEST TAB -->
+    <section id="tab-ingest" class="tab-content">
+      <div class="panel">
+        <h2>📥 Ingestion Pipeline Testbed</h2>
+        <p class="text-muted">Test single or batch log ingestion against any of the 12 supported parsers.</p>
+        <div class="form-group">
+          <label>Select Log Format Preset (or auto-detect):</label>
+          <select id="ingest-preset-select" onchange="loadPresetSample()">
+            <option value="">-- Choose Sample Preset --</option>
+            <option value="windows">Windows Event 4625 (Failed Logon)</option>
+            <option value="linux">Linux SSH Failed Auth (Syslog)</option>
+            <option value="cisco">Cisco ASA Outbound Connection</option>
+            <option value="paloalto">Palo Alto Networks Firewall CSV</option>
+            <option value="aws_cloudtrail">AWS CloudTrail AttachRolePolicy</option>
+            <option value="apache">Apache HTTP Path Traversal Attempt</option>
+            <option value="cef">CEF Malicious Domain DNS</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Raw Log Payload:</label>
+          <textarea id="ingest-raw-text" rows="6" placeholder="Paste single raw log or NDJSON line..."></textarea>
+        </div>
+        <button class="btn btn-success" onclick="submitRawLog()">Ingest Event</button>
+        <div id="ingest-feedback" class="mt-2"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL FOR IOC ADDITION -->
+  <div id="ioc-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3>Add Threat Intel Indicator</h3>
+      <div class="form-group">
+        <label>Indicator Value:</label>
+        <input type="text" id="modal-ioc-val" placeholder="e.g. 198.51.100.5 or malicious-c2.example.com" />
+      </div>
+      <div class="form-group">
+        <label>Type:</label>
+        <select id="modal-ioc-type">
+          <option value="ipv4">IPv4</option>
+          <option value="domain">Domain</option>
+          <option value="sha256">SHA-256</option>
+          <option value="url">URL</option>
+          <option value="md5">MD5</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Severity:</label>
+        <select id="modal-ioc-sev">
+          <option value="critical">Critical</option>
+          <option value="high" selected>High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="submitNewIOC()">Save Indicator</button>
+        <button class="btn btn-outline" onclick="closeIOCModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
